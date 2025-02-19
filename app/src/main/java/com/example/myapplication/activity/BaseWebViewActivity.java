@@ -546,7 +546,7 @@ public abstract class BaseWebViewActivity extends AppCompatActivity {
                 if (bleService != null) {
                     BleDeviceUtil bleDeviceUtil = bleService.getBleDeviceUtil();
                     if (bleDeviceUtil != null && bleDeviceUtil.getConnectStat() == DeviceConnStatEnum.CONNECTED) {
-                        if (bleDeviceUtil.getBluetoothDevice().getAddress().equals(macAddress)) {
+                        if (!bleDeviceUtil.getBluetoothDevice().getAddress().equals(macAddress)) {
                             function.onCallBack(gson.toJson(Result.fail(BLE_MAC_ADDRESS_NOT_MATCH, false)));
                             return;
                         }
@@ -607,7 +607,7 @@ public abstract class BaseWebViewActivity extends AppCompatActivity {
                     BleDeviceUtil bleDeviceUtil = bleService.getBleDeviceUtil();
                     if (bleDeviceUtil != null && bleDeviceUtil.getConnectStat() == DeviceConnStatEnum.CONNECTED) {
 
-                        if (bleDeviceUtil.getBluetoothDevice().getAddress().equals(macAddress)) {
+                        if (!bleDeviceUtil.getBluetoothDevice().getAddress().equals(macAddress)) {
                             function.onCallBack(gson.toJson(Result.fail(BLE_MAC_ADDRESS_NOT_MATCH, false)));
                             return;
                         }
