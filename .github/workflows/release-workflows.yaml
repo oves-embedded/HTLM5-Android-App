@@ -2,7 +2,6 @@ name: OV APK CI/CD for Building and Releasing Artifacts to S3 and Packages
 
 on:
   push:
-    branches: [ master ]
     tags: [ "v*" ] # Trigger only on version tags
 
 jobs:
