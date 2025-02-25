@@ -83,6 +83,15 @@ jobs:
           path: app/build/outputs/apk/release/app-release-unsigned.apk
           retention-days: 14
 
+      # Extract version info from build.gradle
+      - name: Extract Version Info
+        id: version
+        run: |
+          VERSION_CODE=$(grep "versionCode" app/build.gradle | awk '{print $2}' | tr -d '\n')
+          VERSION_NAME=$(grep "versionName" app/build.gradle | awk '{print $2}' | tr -d '\"' | tr -d '\n')
+          echo "VERSION_CODE=$VERSION_CODE" >> $GITHUB_OUTPUT
+          echo "VERSION_NAME=$VERSION_NAME" >> $GITHUB_OUTPUT
+
   create-release:
     name: 🎉 Create Release
     needs: [ generate-release-apk ]
@@ -106,8 +115,7 @@ jobs:
 
       - name: Rename APK
         run: |
-            mv apk/app-release-unsigned.apk apk/oves_app.apk
-
+          mv apk/app-release-unsigned.apk apk/oves_app.apk
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
@@ -129,23 +137,23 @@ jobs:
           file-path: apk/oves_app.apk
           output-file-url: 'true'
 
-      #create and update version_info.json
-      - name: Create version Info JSON
+        # Create and update version_info.json
+      - name: Create Version Info JSON
         run: |
         # Get version info from the previous job
-          VERSION_CODE = ${{ needs.generate-release-apk.outputs.VERSION_CODE }}
-          VERSION_NAME = ${{ needs.generate-release-apk.outputs.VERSION_NAME }}
-
-        # CREATE JSON FILE
+          VERSION_CODE=${{ needs.generate-release-apk.outputs.VERSION_CODE }}
+          VERSION_NAME=${{ needs.generate-release-apk.outputs.VERSION_NAME }}
+               
+        # Create JSON file
           cat > version_info.json << EOF
-          {
-            "versionCode": $VERSION_CODE,
-            "versionName": $VERSION_NAME,
-            "releaseNotes": "New version avaliable",
-            "forceUpdate": false,
-            "minSupportedVersion": 1
-          }
-          EOF
+              {
+                "versionCode": $VERSION_CODE,
+                "versionName": "$VERSION_NAME",
+                "releaseNotes": "New version available",
+                "forceUpdate": false,
+                "minSupportedVersion": 1
+              }
+              EOF
 
       - name: Upload Version Info to S3
         uses: hkusu/s3-upload-action@v2
