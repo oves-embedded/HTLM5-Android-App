@@ -147,10 +147,10 @@ jobs:
         # Create JSON file
           cat > version_info.json << EOF
           {
-            "versionCode": ${VERSION_CODE},
-            "versionName": ${VERSION_NAME},
+            "versionCode": "${VERSION_CODE}",
+            "versionName": "${VERSION_NAME}",
             "releaseNotes": "New version available",
-            "forceUpdate": false,
+            "forceUpdate": 'false',
             "minSupportedVersion": 1
           }
           EOF
