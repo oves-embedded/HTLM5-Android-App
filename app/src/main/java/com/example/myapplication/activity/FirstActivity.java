@@ -24,6 +24,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.example.myapplication.BuildConfig;
 import com.example.myapplication.R;
 import com.example.myapplication.entity.main.ItemConfig;
 import com.example.myapplication.entity.main.MainConfig;
@@ -55,6 +56,7 @@ import java.util.List;
 import java.util.UUID;
 
 public class FirstActivity extends AppCompatActivity {
+    private AppUpdateManager appUpdateManager;
 
     EditText etWebSite;
 
@@ -69,6 +71,9 @@ public class FirstActivity extends AppCompatActivity {
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        appUpdateManager = new AppUpdateManager(this);
+        appUpdateManager.checkForUpdates(BuildConfig.VERSION_CODE);
 
         // Get cached URL or use default
         String url = (String) SharedPreferencesUtils.getParam(FirstActivity.this, TAG, DEFAULT_URL);
