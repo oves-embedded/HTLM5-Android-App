@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace 'com.example.myapplication'
+    namespace 'com.oves.ble'
     compileSdk 34
 
     defaultConfig {
-        applicationId "com.example.myapplication"
+        applicationId "com.oves.ble"
         minSdk 26
         targetSdk 34
         versionCode 1
@@ -42,7 +42,7 @@ android {
     //新加入
     greendao {
         schemaVersion 1 //数据库版本号 每次升级数据库都需要改变版本，只能增加
-        daoPackage 'com.example.motorbike.dao'  //设置DaoMaster、DaoSession、Dao包名
+        daoPackage 'com.oves.motorbike.dao'  //设置DaoMaster、DaoSession、Dao包名
         targetGenDir 'src/main/java' //设置DaoMaster、DaoSession、Dao目录
     }
 
