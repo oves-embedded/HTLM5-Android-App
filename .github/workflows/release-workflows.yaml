@@ -138,8 +138,11 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
           aws-bucket: ${{ secrets.AWS_S3_BUCKET }}
+          destination-dir: oves_app
           file-path: apk/oves_app.apk
           output-file-url: 'true'
+          output-qr-url: 'true'
+
 
         # Create and update version_info.json
       - name: Create Version Info JSON
