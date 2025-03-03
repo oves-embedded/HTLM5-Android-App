@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace 'com.example.oves_app'
+    namespace 'com.oves.app'
     compileSdk 34
 
     defaultConfig {
-        applicationId "com.example.oves_app"
+        applicationId "com.oves.app"
         minSdk 26
         targetSdk 34
         versionCode 1
