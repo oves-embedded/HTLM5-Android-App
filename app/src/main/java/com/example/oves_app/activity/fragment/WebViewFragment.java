@@ -43,7 +43,6 @@ import androidx.lifecycle.DefaultLifecycleObserver;
 import androidx.lifecycle.LifecycleOwner;
 
 import com.example.oves_app.MainActivity;
-import com.example.oves_app.R;
 import com.example.oves_app.activity.OcrActivity;
 import com.example.oves_app.callback.InitBleDataCallBack;
 import com.example.oves_app.callback.InitBleServiceDataCallBack;
@@ -88,6 +87,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import com.example.oves_app.R;
 
 public class WebViewFragment extends Fragment {
     private BridgeWebView bridgeWebView;

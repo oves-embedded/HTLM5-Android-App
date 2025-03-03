@@ -1,4 +1,4 @@
-package com.example.myapplication.util;
+package com.example.oves_app.util;
 
 import static android.content.Context.BATTERY_SERVICE;
 

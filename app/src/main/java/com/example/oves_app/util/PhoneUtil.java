@@ -1,4 +1,4 @@
-package com.example.myapplication.util;
+package com.example.oves_app.util;
 
 import android.annotation.SuppressLint;
 import android.content.ContentResolver;
@@ -6,13 +6,15 @@ import android.content.Context;
 import android.database.Cursor;
 import android.provider.ContactsContract;
 
-import com.example.myapplication.entity.PhoneDomain;
+
+import com.example.oves_app.entity.PhoneDomain;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class PhoneUtil {
 
+    @SuppressLint("Range")
     public static List<PhoneDomain> readContacts(Context context) {
         List<PhoneDomain> list = new ArrayList<PhoneDomain>();
         ContentResolver contentResolver = context.getContentResolver();

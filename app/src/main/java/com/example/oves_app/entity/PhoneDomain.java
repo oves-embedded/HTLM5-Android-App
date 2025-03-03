@@ -1,4 +1,4 @@
-package com.example.myapplication.entity;
+package com.example.oves_app.entity;
 
 import java.io.Serializable;
 
