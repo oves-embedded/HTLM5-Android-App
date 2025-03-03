@@ -18,9 +18,11 @@ import android.content.ComponentName;
 import android.content.ContentValues;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.BatteryManager;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.provider.MediaStore;
@@ -44,6 +46,7 @@ import com.example.myapplication.constants.Result;
 import com.example.myapplication.entity.BleDeviceInfo;
 import com.example.myapplication.entity.CharacteristicDomain;
 import com.example.myapplication.entity.MqttConfig;
+import com.example.myapplication.entity.PhoneDomain;
 import com.example.myapplication.entity.ServicesPropertiesDomain;
 import com.example.myapplication.entity.event.EventBusMsg;
 import com.example.myapplication.entity.js.CharacteristicDto;
@@ -55,9 +58,11 @@ import com.example.myapplication.service.BleService;
 import com.example.myapplication.service.GpsService;
 import com.example.myapplication.thread.ThreadPool;
 import com.example.myapplication.util.BleDeviceUtil;
+import com.example.myapplication.util.DeviceUtil;
 import com.example.myapplication.util.ImageUtil;
 import com.example.myapplication.util.LogUtil;
 import com.example.myapplication.util.MqttClientUtil;
+import com.example.myapplication.util.PhoneUtil;
 import com.example.myapplication.util.SharedPreferencesUtils;
 import com.example.myapplication.util.permission.PermissionInterceptor;
 import com.github.lzyzsd.jsbridge.BridgeHandler;
@@ -115,7 +120,6 @@ public abstract class BaseWebViewActivity extends AppCompatActivity {
         //init service
         bindService(new Intent(this, BleService.class), serviceConnection, BIND_AUTO_CREATE);
         EventBus.getDefault().register(this);
-
 
     }
 
@@ -182,6 +186,78 @@ public abstract class BaseWebViewActivity extends AppCompatActivity {
     }
 
     public void registerCommMethod() {
+
+        bridgeWebView.registerHandler("readContacts", new BridgeHandler() {
+            @Override
+            public void handler(String data, CallBackFunction function) {
+                //JS传递给Android
+                XXPermissions.with(BaseWebViewActivity.this)
+                        .permission(Permission.READ_CONTACTS)
+                        .permission(Permission.WRITE_CONTACTS)
+                        .interceptor(new PermissionInterceptor())
+                        .request(new OnPermissionCallback() {
+
+                            @Override
+                            public void onGranted(@NonNull List<String> permissions, boolean allGranted) {
+                                if (!allGranted) {
+                                    function.onCallBack(gson.toJson(Result.fail(PERMISSION_ERROR)));
+                                    return;
+                                }
+                                function.onCallBack(gson.toJson(Result.ok("The invocation was successful. Please obtain the result in the callback method \"readContactsCallBack\".")));
+                                ThreadPool.getExecutor().execute(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        List<PhoneDomain> phoneDomains = PhoneUtil.readContacts(BaseWebViewActivity.this);
+
+                                        runOnUiThread(new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                bridgeWebView.callHandler("readContactsCallBack", gson.toJson(phoneDomains), new CallBackFunction() {
+                                                    @Override
+                                                    public void onCallBack(String data) {
+                                                    }
+                                                });
+                                            }
+                                        });
+                                    }
+                                });
+                            }
+                        });
+            }
+        });
+
+
+        bridgeWebView.registerHandler("readDeviceInfo", new BridgeHandler() {
+            @Override
+            public void handler(String data, CallBackFunction function) {
+                //JS传递给Android
+                XXPermissions.with(BaseWebViewActivity.this)
+                        .permission(Permission.READ_PHONE_STATE)
+                        .interceptor(new PermissionInterceptor())
+                        .request(new OnPermissionCallback() {
+
+                            @Override
+                            public void onGranted(@NonNull List<String> permissions, boolean allGranted) {
+                                if (!allGranted) {
+                                    function.onCallBack(gson.toJson(Result.fail(PERMISSION_ERROR)));
+                                    return;
+                                }
+                                Map<String, String> deviceInfo = DeviceUtil.getDeviceInfo(BaseWebViewActivity.this);
+                                function.onCallBack(gson.toJson(Result.ok(deviceInfo)));
+                            }
+                        });
+            }
+        });
+
+        bridgeWebView.registerHandler("getNetworkType", new BridgeHandler() {
+            @Override
+            public void handler(String data, CallBackFunction function) {
+                String networkType = DeviceUtil.getNetworkType(BaseWebViewActivity.this);
+                function.onCallBack(gson.toJson(Result.ok(networkType)));
+            }
+        });
+
+
         //JS 通过 JSBridge 调用 Android
         bridgeWebView.registerHandler("toastMsg", new BridgeHandler() {
             @Override
@@ -468,15 +544,15 @@ public abstract class BaseWebViewActivity extends AppCompatActivity {
                                                             characteristicDto.setRealVal(characteristicDomain.getRealVal());
                                                             characteristicDto.setValType(characteristicDomain.getValType());
                                                             characteristicDto.setValues(characteristicDomain.getValues());
-                                                            if(servicesPropertiesDto.getCharacteristicList()==null){
+                                                            if (servicesPropertiesDto.getCharacteristicList() == null) {
                                                                 servicesPropertiesDto.setCharacteristicList(new ArrayList<>());
                                                             }
                                                             servicesPropertiesDto.getCharacteristicList().add(characteristicDto);
                                                         }
                                                     }
-                                                    Map<String,Object>obj=new HashMap<>();
-                                                    obj.put("macAddress",macAddress);
-                                                    obj.put("dataList",dataList);
+                                                    Map<String, Object> obj = new HashMap<>();
+                                                    obj.put("macAddress", macAddress);
+                                                    obj.put("dataList", dataList);
                                                     bridgeWebView.callHandler("bleInitDataOnCompleteCallBack", gson.toJson(obj), new CallBackFunction() {
                                                         @Override
                                                         public void onCallBack(String data) {
@@ -666,7 +742,7 @@ public abstract class BaseWebViewActivity extends AppCompatActivity {
                                     creator.setHmsScanTypes(HmsScan.ALL_SCAN_TYPE);
                                     creator.setShowGuide(true);
                                     creator.setPhotoMode(true);
-                                    HmsScanAnalyzerOptions hmsScanAnalyzerOptions =creator.create();
+                                    HmsScanAnalyzerOptions hmsScanAnalyzerOptions = creator.create();
                                     Intent intent = new Intent(BaseWebViewActivity.this, ScanKitActivity.class);
                                     if (intent != null) {
                                         intent.putExtra("ScanFormatValue", hmsScanAnalyzerOptions.mode);
@@ -1325,7 +1401,19 @@ public abstract class BaseWebViewActivity extends AppCompatActivity {
                 }
             });
         }
-
-
     }
+
+
+    private float getCurrentBatteryLevel() {
+        Intent batteryIntent = registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+        if (batteryIntent != null) {
+            int level = batteryIntent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
+            int scale = batteryIntent.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
+            if (level != -1 && scale > 0) {
+                return (level * 100.0f) / scale;
+            }
+        }
+        return -1f; // 获取失败
+    }
+
 }
