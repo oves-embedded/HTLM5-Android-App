@@ -134,11 +134,11 @@ public class WebViewActivity extends BaseWebViewActivity {
 
         // Load the URL passed from FirstActivity
         String url = getIntent().getStringExtra("url");
-//        if (TextUtils.isEmpty(url)) {
+        if (TextUtils.isEmpty(url)) {
             bridgeWebView.loadUrl("file:///android_asset/webview/index.html");
-//        } else {
-//            bridgeWebView.loadUrl(url);
-//        }
+        } else {
+            bridgeWebView.loadUrl(url);
+        }
     }
 
     public void registerMethod() {
