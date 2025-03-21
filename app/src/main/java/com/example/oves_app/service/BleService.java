@@ -239,6 +239,8 @@ public class BleService extends Service implements MqttCallback ,LocationListene
 
     @Override
     public void connectionLost(Throwable cause) {
+        cause.printStackTrace();
+        LogUtil.debug("connectionLost :"+cause.getMessage());
 
     }
 

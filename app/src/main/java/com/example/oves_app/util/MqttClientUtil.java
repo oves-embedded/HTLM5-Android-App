@@ -14,6 +14,7 @@ import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class MqttClientUtil {
@@ -28,6 +29,7 @@ public class MqttClientUtil {
     public MqttClientUtil(MqttConfig mqttConfig) {
         this.mqttConfig = mqttConfig;
     }
+
     public boolean isConnected() {
         return client != null ? client.isConnected() : false;
     }
@@ -74,7 +76,7 @@ public class MqttClientUtil {
      * 重新连接
      */
     public void reconnect(MqttCallback mqttCallback) {
-        this.mqttCallback=mqttCallback;
+        this.mqttCallback = mqttCallback;
         if (client != null && !client.isConnected()) {
             try {
                 client.setCallback(mqttCallback);
@@ -90,7 +92,9 @@ public class MqttClientUtil {
     }
 
     public boolean createConnect(MqttCallback mqttCallback) {
-        this.mqttCallback=mqttCallback;
+
+        LogUtil.debug("===============================createConnect=================================");
+        this.mqttCallback = mqttCallback;
         boolean flag = false;
         try {
             options = new MqttConnectOptions();
@@ -116,6 +120,8 @@ public class MqttClientUtil {
     }
 
     private boolean doConnect() {
+        LogUtil.debug("===============================doConnect=================================");
+
         if (client != null) {
             try {
                 IMqttToken iMqttToken = client.connectWithResult(options);
@@ -141,6 +147,8 @@ public class MqttClientUtil {
     }
 
     public boolean publish(String topicName, int qos, byte[] payload) {
+        LogUtil.debug(String.format("publish:%s    data:%s", topicName, new String(payload, StandardCharsets.UTF_8)));
+
         try {
             if (client == null) {
                 LogUtil.debug("mqtt client is null");
@@ -164,6 +172,8 @@ public class MqttClientUtil {
 
 
     public boolean subscribe(String topicName, int qos) {
+        LogUtil.debug("===============================doConnect=================================");
+
         boolean flag = false;
         if (client != null && client.isConnected()) {
             try {
