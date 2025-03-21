@@ -44,6 +44,7 @@ import com.oves.app.constants.Result;
 import com.oves.app.entity.BleDeviceInfo;
 import com.oves.app.entity.CharacteristicDomain;
 import com.oves.app.entity.MqttConfig;
+import com.oves.app.entity.PhoneDomain;
 import com.oves.app.entity.ServicesPropertiesDomain;
 import com.oves.app.entity.event.EventBusMsg;
 import com.oves.app.entity.js.CharacteristicDto;
@@ -55,9 +56,11 @@ import com.oves.app.service.BleService;
 import com.oves.app.service.GpsService;
 import com.oves.app.thread.ThreadPool;
 import com.oves.app.util.BleDeviceUtil;
+import com.oves.app.util.DeviceUtil;
 import com.oves.app.util.ImageUtil;
 import com.oves.app.util.LogUtil;
 import com.oves.app.util.MqttClientUtil;
+import com.oves.app.util.PhoneUtil;
 import com.oves.app.util.SharedPreferencesUtils;
 import com.oves.app.util.permission.PermissionInterceptor;
 import com.github.lzyzsd.jsbridge.BridgeHandler;
@@ -181,6 +184,76 @@ public abstract class BaseWebViewActivity extends AppCompatActivity {
     }
 
     public void registerCommMethod() {
+        bridgeWebView.registerHandler("readContacts", new BridgeHandler() {
+            @Override
+            public void handler(String data, CallBackFunction function) {
+                //JS传递给Android
+                XXPermissions.with(BaseWebViewActivity.this)
+                        .permission(Permission.READ_CONTACTS)
+                        .permission(Permission.WRITE_CONTACTS)
+                        .interceptor(new PermissionInterceptor())
+                        .request(new OnPermissionCallback() {
+
+                            @Override
+                            public void onGranted(@NonNull List<String> permissions, boolean allGranted) {
+                                if (!allGranted) {
+                                    function.onCallBack(gson.toJson(Result.fail(PERMISSION_ERROR)));
+                                    return;
+                                }
+                                function.onCallBack(gson.toJson(Result.ok("The invocation was successful. Please obtain the result in the callback method \"readContactsCallBack\".")));
+                                ThreadPool.getExecutor().execute(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        List<PhoneDomain> phoneDomains = PhoneUtil.readContacts(BaseWebViewActivity.this);
+
+                                        runOnUiThread(new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                bridgeWebView.callHandler("readContactsCallBack", gson.toJson(phoneDomains), new CallBackFunction() {
+                                                    @Override
+                                                    public void onCallBack(String data) {
+                                                    }
+                                                });
+                                            }
+                                        });
+                                    }
+                                });
+                            }
+                        });
+            }
+        });
+
+
+        bridgeWebView.registerHandler("readDeviceInfo", new BridgeHandler() {
+            @Override
+            public void handler(String data, CallBackFunction function) {
+                //JS传递给Android
+                XXPermissions.with(BaseWebViewActivity.this)
+                        .permission(Permission.READ_PHONE_STATE)
+                        .interceptor(new PermissionInterceptor())
+                        .request(new OnPermissionCallback() {
+
+                            @Override
+                            public void onGranted(@NonNull List<String> permissions, boolean allGranted) {
+                                if (!allGranted) {
+                                    function.onCallBack(gson.toJson(Result.fail(PERMISSION_ERROR)));
+                                    return;
+                                }
+                                Map<String, String> deviceInfo = DeviceUtil.getDeviceInfo(BaseWebViewActivity.this);
+                                function.onCallBack(gson.toJson(Result.ok(deviceInfo)));
+                            }
+                        });
+            }
+        });
+
+        bridgeWebView.registerHandler("getNetworkType", new BridgeHandler() {
+            @Override
+            public void handler(String data, CallBackFunction function) {
+                String networkType = DeviceUtil.getNetworkType(BaseWebViewActivity.this);
+                function.onCallBack(gson.toJson(Result.ok(networkType)));
+            }
+        });
+
         //JS 通过 JSBridge 调用 Android
         bridgeWebView.registerHandler("toastMsg", new BridgeHandler() {
             @Override
