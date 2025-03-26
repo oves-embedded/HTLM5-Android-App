@@ -33,13 +33,13 @@ import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import com.orhanobut.logger.Logger;
 import com.oves.app.entity.BleDeviceInfo;
 import com.oves.app.entity.MqttConfig;
 import com.oves.app.entity.event.EventBusMsg;
 import com.oves.app.enums.DeviceConnStatEnum;
 import com.oves.app.enums.EventBusEnum;
 import com.oves.app.util.BleDeviceUtil;
-import com.oves.app.util.LogUtil;
 import com.oves.app.util.MqttClientUtil;
 import com.google.gson.Gson;
 
@@ -161,7 +161,7 @@ public class BleService extends Service implements MqttCallback ,LocationListene
                 if (!TextUtils.isEmpty(bleKeyword) && !bleName.contains(bleKeyword)) {
                     return;
                 }
-                LogUtil.debug(device.getAddress() + "," + device.getName());
+                Logger.d(device.getAddress() + "," + device.getName());
                 String typeStr = "Unknown";
                 if (device.getType() == 1) {
                     typeStr = "Classic";
@@ -184,13 +184,12 @@ public class BleService extends Service implements MqttCallback ,LocationListene
         @Override
         public void onBatchScanResults(List<ScanResult> results) {
             super.onBatchScanResults(results);
-            LogUtil.debug("ScanCallback==>onBatchScanResults");
         }
 
         @Override
         public void onScanFailed(int errorCode) {
             super.onScanFailed(errorCode);
-            LogUtil.error("ScanCallback==>onScanFailed:" + errorCode);
+            Logger.d("onScanFailed:%s",errorCode);
         }
     };
 
@@ -240,13 +239,14 @@ public class BleService extends Service implements MqttCallback ,LocationListene
     @Override
     public void connectionLost(Throwable cause) {
         cause.printStackTrace();
-        LogUtil.debug("connectionLost :"+cause.getMessage());
+        Logger.d("connectionLost:%s",cause.getMessage());
 
     }
 
     @Override
     public void messageArrived(String topic, MqttMessage message) throws Exception {
-        LogUtil.debug("MqttService==>messageArrived topic:" + topic + ",message:" + new String(message.getPayload()));
+        Logger.d("messageArrived topic:%s,message:%s",topic,new String(message.getPayload()));
+
         Map<String,String>map=new HashMap<>();
         map.put("topic",topic);
         map.put("message",new String(message.getPayload()));

@@ -3,6 +3,7 @@ package com.oves.app.util;
 import android.text.TextUtils;
 
 
+import com.orhanobut.logger.Logger;
 import com.oves.app.entity.MqttConfig;
 
 import org.eclipse.paho.client.mqttv3.IMqttActionListener;
@@ -15,6 +16,7 @@ import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class MqttClientUtil {
@@ -93,7 +95,6 @@ public class MqttClientUtil {
 
     public boolean createConnect(MqttCallback mqttCallback) {
 
-        LogUtil.debug("===============================createConnect=================================");
         this.mqttCallback = mqttCallback;
         boolean flag = false;
         try {
@@ -120,7 +121,6 @@ public class MqttClientUtil {
     }
 
     private boolean doConnect() {
-        LogUtil.debug("===============================doConnect=================================");
 
         if (client != null) {
             try {
@@ -128,12 +128,13 @@ public class MqttClientUtil {
                 iMqttToken.setActionCallback(new IMqttActionListener() {
                     @Override
                     public void onSuccess(IMqttToken asyncActionToken) {
-                        LogUtil.debug("mqtt client [doConnect] success!");
+                        Logger.d("mqtt client [doConnect] success!");
                     }
 
                     @Override
                     public void onFailure(IMqttToken asyncActionToken, Throwable exception) {
-                        LogUtil.debug("mqtt client [doConnect] fail:" + exception.getMessage());
+                        Logger.d("mqtt client [doConnect] fail:" + exception.getMessage());
+
                     }
                 });
                 iMqttToken.waitForCompletion();
@@ -147,15 +148,15 @@ public class MqttClientUtil {
     }
 
     public boolean publish(String topicName, int qos, byte[] payload) {
-        LogUtil.debug(String.format("publish:%s    data:%s", topicName, new String(payload, StandardCharsets.UTF_8)));
+        Logger.d(String.format("publish:%s    data:%s", topicName, new String(payload, StandardCharsets.UTF_8)));
 
         try {
             if (client == null) {
-                LogUtil.debug("mqtt client is null");
+                Logger.d("mqtt client is null");
                 return false;
             }
             if (!client.isConnected()) {
-                LogUtil.debug("mqtt client is not connected");
+                Logger.d("mqtt client is not connected");
                 this.reconnect(mqttCallback);
             }
             MqttMessage message = new MqttMessage(payload);
@@ -165,15 +166,13 @@ public class MqttClientUtil {
             return true;
         } catch (MqttException e) {
             e.printStackTrace();
-            LogUtil.debug("publish msg error" + e.getMessage());
+            Logger.d("publish msg error" + e.getMessage());
             return false;
         }
     }
 
 
     public boolean subscribe(String topicName, int qos) {
-        LogUtil.debug("===============================doConnect=================================");
-
         boolean flag = false;
         if (client != null && client.isConnected()) {
             try {

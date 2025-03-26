@@ -29,7 +29,6 @@ import com.oves.app.entity.main.ItemConfig;
 import com.oves.app.entity.main.MainConfig;
 import com.oves.app.enums.EventBusEnum;
 import com.oves.app.service.BleService;
-import com.oves.app.util.LogUtil;
 import com.github.lzyzsd.jsbridge.BridgeWebView;
 import com.github.lzyzsd.jsbridge.CallBackFunction;
 import com.google.gson.Gson;
@@ -88,8 +87,6 @@ public class MainActivity extends AppCompatActivity {
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onMessageEvent(EventBusMsg message) {
-        LogUtil.info("onMessageEvent"+gson.toJson(message));
-
         try {
             WebViewFragment fragment = (WebViewFragment) fragments.get(viewPager.getCurrentItem());
             BridgeWebView bridgeWebView = fragment.getBridgeWebView();
@@ -100,30 +97,28 @@ public class MainActivity extends AppCompatActivity {
                     public void onCallBack(String data) {
                     }
                 });
-            }
-            else if (message.getTagEnum() == EventBusEnum.BLE_CONNECT) {
+            } else if (message.getTagEnum() == EventBusEnum.BLE_CONNECT) {
                 String macAddress = (String) message.getT();
                 bridgeWebView.callHandler("bleConnectSuccessCallBack", macAddress, new CallBackFunction() {
                     @Override
                     public void onCallBack(String data) {
                     }
                 });
-            }
-            else if (message.getTagEnum() == EventBusEnum.BLE_CONNECT_FAIL) {
+            } else if (message.getTagEnum() == EventBusEnum.BLE_CONNECT_FAIL) {
                 String macAddress = (String) message.getT();
                 bridgeWebView.callHandler("bleConnectFailCallBack", macAddress, new CallBackFunction() {
                     @Override
                     public void onCallBack(String data) {
                     }
                 });
-            }else if(message.getTagEnum() == EventBusEnum.MQTT_MSG_ARRIVED){
-                bridgeWebView.callHandler("mqttMsgArrivedCallBack", (String)message.getT(), new CallBackFunction() {
+            } else if (message.getTagEnum() == EventBusEnum.MQTT_MSG_ARRIVED) {
+                bridgeWebView.callHandler("mqttMsgArrivedCallBack", (String) message.getT(), new CallBackFunction() {
                     @Override
                     public void onCallBack(String data) {
                     }
                 });
-            }else if(message.getTagEnum() == EventBusEnum.GPS_CHANGE){
-                bridgeWebView.callHandler("locationCallBack", (String)message.getT(), new CallBackFunction() {
+            } else if (message.getTagEnum() == EventBusEnum.GPS_CHANGE) {
+                bridgeWebView.callHandler("locationCallBack", (String) message.getT(), new CallBackFunction() {
                     @Override
                     public void onCallBack(String data) {
                     }

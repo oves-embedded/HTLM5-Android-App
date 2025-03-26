@@ -60,7 +60,6 @@ import com.oves.app.service.BleService;
 import com.oves.app.thread.ThreadPool;
 import com.oves.app.util.BleDeviceUtil;
 import com.oves.app.util.ImageUtil;
-import com.oves.app.util.LogUtil;
 import com.oves.app.util.MqttClientUtil;
 import com.oves.app.util.SharedPreferencesUtils;
 import com.oves.app.util.permission.PermissionInterceptor;
@@ -1271,12 +1270,10 @@ public class WebViewFragment extends Fragment {
                 if (data != null) {
                     Uri selectedImage = data.getData();
                     imgBase64 = ImageUtil.imageToBase64(getImagePath(selectedImage));
-                    LogUtil.info(imgBase64);
                 } else {
                     Toaster.show("takePhotoUri is null?" + takePhotoUri == null);
                     if (takePhotoUri != null) {
                         imgBase64 = ImageUtil.imageToBase64(getImagePath(takePhotoUri));
-                        LogUtil.info(imgBase64);
                         takePhotoUri = null;
                     }
                 }
@@ -1289,12 +1286,10 @@ public class WebViewFragment extends Fragment {
                         if (data != null) {
                             Uri selectedImage = data.getData();
                             imgBase64 = ImageUtil.imageToBase64(getImagePath(selectedImage));
-                            LogUtil.info(imgBase64);
                         } else {
                             Toaster.show("takePhotoUri is null?" + takePhotoUri == null);
                             if (takePhotoUri != null) {
                                 imgBase64 = ImageUtil.imageToBase64(getImagePath(takePhotoUri));
-                                LogUtil.info(imgBase64);
                                 takePhotoUri = null;
                             }
                         }
@@ -1335,14 +1330,12 @@ public class WebViewFragment extends Fragment {
                 bridgeWebView.callHandler("scanQrcodeResultCallBack", gson.toJson(Result.ok(map)), new CallBackFunction() {
                     @Override
                     public void onCallBack(String data) {
-                        LogUtil.debug(String.format("scanQrcodeResultCallBack return:[%s]", data));
                     }
                 });
             } else {
                 bridgeWebView.callHandler("scanQrcodeResultCallBack", gson.toJson(Result.fail()), new CallBackFunction() {
                     @Override
                     public void onCallBack(String data) {
-                        LogUtil.debug(String.format("scanQrcodeResultCallBack return:[%s]", data));
                     }
                 });
             }

@@ -14,6 +14,7 @@ import android.content.Context;
 
 import androidx.annotation.NonNull;
 
+import com.orhanobut.logger.Logger;
 import com.oves.app.callback.InitBleDataCallBack;
 import com.oves.app.callback.InitBleServiceDataCallBack;
 import com.oves.app.constants.DataConvert;
@@ -413,7 +414,7 @@ public class BleDeviceUtil {
         @Override
         public void onPhyUpdate(BluetoothGatt gatt, int txPhy, int rxPhy, int status) {
             super.onPhyUpdate(gatt, txPhy, rxPhy, status);
-            LogUtil.debug("BluetoothGattCallback onPhyUpdate");
+
         }
 
         /**
@@ -427,14 +428,12 @@ public class BleDeviceUtil {
         @Override
         public void onPhyRead(BluetoothGatt gatt, int txPhy, int rxPhy, int status) {
             super.onPhyRead(gatt, txPhy, rxPhy, status);
-            LogUtil.debug("BluetoothGattCallback onPhyRead");
         }
 
         @SuppressLint("MissingPermission")
         @Override
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
             super.onConnectionStateChange(gatt, status, newState);
-            LogUtil.debug("BluetoothGattCallback onConnectionStateChange:" + newState);
             if (newState == BluetoothGattServer.STATE_CONNECTED) {
                 connected = DeviceConnStatEnum.CONNECTED;
                 gatt.discoverServices();
@@ -448,10 +447,7 @@ public class BleDeviceUtil {
         @Override
         public void onServicesDiscovered(BluetoothGatt gatt, int status) {
             super.onServicesDiscovered(gatt, status);
-
-
             //可以开始进行service读写了
-            LogUtil.debug("BluetoothGattCallback onServicesDiscovered:" + status);
             if (status == BluetoothGatt.GATT_SUCCESS) {
 
                 List<BluetoothGattService> services = gatt.getServices();
@@ -542,10 +538,11 @@ public class BleDeviceUtil {
 
             try {
                 if (characteristic.getValue() == null || characteristic.getValue().length <= 0) {
-                    LogUtil.debug("BluetoothGattCallback onCharacteristicRead：value is null");
+                    Logger.d("BluetoothGattCallback onCharacteristicRead：value is null");
+
                     return;
                 } else {
-                    LogUtil.debug("BluetoothGattCallback onCharacteristicRead  " + (characteristicDataDto.getName() != null ? characteristicDataDto.getName() : "?") + "   :" + ByteUtil.bytes2HexString(characteristic.getValue()));
+                    Logger.d("BluetoothGattCallback onCharacteristicRead  " + (characteristicDataDto.getName() != null ? characteristicDataDto.getName() : "?") + "   :" + ByteUtil.bytes2HexString(characteristic.getValue()));
                 }
                 characteristicDataDto.setValues(characteristic.getValue());
                 characteristicDataDto.setRealVal(DataConvert.convert2Obj(characteristicDataDto.getValues(), characteristicDataDto.getValType()));
@@ -554,20 +551,18 @@ public class BleDeviceUtil {
                 }
             } catch (Exception e) {
                 e.printStackTrace();
-                LogUtil.error("DataConvert.convert2Obj ====>" + new Gson().toJson(characteristicDataDto));
+                Logger.d("DataConvert.convert2Obj ====>" + new Gson().toJson(characteristicDataDto));
             }
         }
 
         @Override
         public void onCharacteristicRead(@NonNull BluetoothGatt gatt, @NonNull BluetoothGattCharacteristic characteristic, @NonNull byte[] value, int status) {
             super.onCharacteristicRead(gatt, characteristic, value, status);
-            LogUtil.debug("BluetoothGattCallback onCharacteristicRead2：" + ByteUtil.bytes2HexString(characteristic.getValue()));
         }
 
         @Override
         public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
             super.onCharacteristicWrite(gatt, characteristic, status);
-            LogUtil.debug("BluetoothGattCallback onCharacteristicWrite：" + ByteUtil.bytes2HexString(characteristic.getValue()));
             if (countDownLatch != null) countDownLatch.countDown();
         }
 
@@ -576,7 +571,6 @@ public class BleDeviceUtil {
         public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
             super.onCharacteristicChanged(gatt, characteristic);
             String s = new String(characteristic.getValue(), StandardCharsets.US_ASCII);
-            LogUtil.debug("BluetoothGattCallback onCharacteristicChanged:" + s);
             notifyBuff.append(s);
         }
 
@@ -585,10 +579,11 @@ public class BleDeviceUtil {
         public void onDescriptorRead(BluetoothGatt gatt, BluetoothGattDescriptor descriptor, int status) {
             super.onDescriptorRead(gatt, descriptor, status);
             if (descriptor.getValue() == null || descriptor.getValue().length <= 0) {
-                LogUtil.debug("BluetoothGattCallback onDescriptorRead：value is null");
+                Logger.d("BluetoothGattCallback onDescriptorRead：value is null");
+
                 return;
             }
-            LogUtil.debug("BluetoothGattCallback onDescriptorRead：" + ByteUtil.bytes2HexString(descriptor.getValue()));
+            Logger.d("BluetoothGattCallback onDescriptorRead：" + ByteUtil.bytes2HexString(descriptor.getValue()));
             String characteristicUUID = descriptor.getCharacteristic().getUuid().toString();
             String serviceUUID = descriptor.getCharacteristic().getService().getUuid().toString();
             String descriptorUUID = descriptor.getUuid().toString();
@@ -613,7 +608,6 @@ public class BleDeviceUtil {
         @Override
         public void onDescriptorRead(@NonNull BluetoothGatt gatt, @NonNull BluetoothGattDescriptor descriptor, int status, @NonNull byte[] value) {
             super.onDescriptorRead(gatt, descriptor, status, value);
-            LogUtil.debug("BluetoothGattCallback onDescriptorRead :" + ByteUtil.bytes2HexString(descriptor.getValue()));
 
         }
 
@@ -621,7 +615,6 @@ public class BleDeviceUtil {
         @Override
         public void onDescriptorWrite(BluetoothGatt gatt, BluetoothGattDescriptor descriptor, int status) {
             super.onDescriptorWrite(gatt, descriptor, status);
-            LogUtil.debug("BluetoothGattCallback onDescriptorWrite :" + ByteUtil.bytes2HexString(descriptor.getValue()));
             if (countDownLatch != null) {
                 countDownLatch.countDown();
             }
@@ -630,28 +623,24 @@ public class BleDeviceUtil {
         @Override
         public void onReliableWriteCompleted(BluetoothGatt gatt, int status) {
             super.onReliableWriteCompleted(gatt, status);
-            LogUtil.debug("BluetoothGattCallback onReliableWriteCompleted");
 
         }
 
         @Override
         public void onReadRemoteRssi(BluetoothGatt gatt, int rssi, int status) {
             super.onReadRemoteRssi(gatt, rssi, status);
-            LogUtil.debug("BluetoothGattCallback onReadRemoteRssi");
 
         }
 
         @Override
         public void onMtuChanged(BluetoothGatt gatt, int mtu, int status) {
             super.onMtuChanged(gatt, mtu, status);
-            LogUtil.debug("BluetoothGattCallback onMtuChanged");
             if (countDownLatch != null) countDownLatch.countDown();
         }
 
         @Override
         public void onServiceChanged(@NonNull BluetoothGatt gatt) {
             super.onServiceChanged(gatt);
-            LogUtil.debug("BluetoothGattCallback onServiceChanged");
         }
     };
 
