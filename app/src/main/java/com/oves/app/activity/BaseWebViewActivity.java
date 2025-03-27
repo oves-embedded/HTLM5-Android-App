@@ -36,6 +36,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.biometric.BiometricPrompt;
 import androidx.core.content.ContextCompat;
 
+import com.example.ota66_sdk2.OTASDKUtils;
+import com.example.ota66_sdk2.firware.UpdateFirewareCallBack;
 import com.oves.app.MainActivity;
 import com.oves.app.R;
 import com.oves.app.callback.InitBleDataCallBack;
@@ -56,6 +58,7 @@ import com.oves.app.service.BleService;
 import com.oves.app.thread.ThreadPool;
 import com.oves.app.util.BleDeviceUtil;
 import com.oves.app.util.DeviceUtil;
+import com.oves.app.util.DownloadUtil;
 import com.oves.app.util.ImageUtil;
 import com.oves.app.util.MqttClientUtil;
 import com.oves.app.util.PhoneUtil;
@@ -97,9 +100,8 @@ public abstract class BaseWebViewActivity extends AppCompatActivity {
     private int CHOOSE_PIC_REQUEST_CODE = 111;
     private int REQUEST_CODE_OCR = 222;
     private Uri takePhotoUri;
-
     private boolean SERVICE_BIND = false;
-
+    private OTASDKUtils otasdkUtils;
 
 
     @Override
@@ -180,42 +182,131 @@ public abstract class BaseWebViewActivity extends AppCompatActivity {
     }
 
     public void registerCommMethod() {
+        bridgeWebView.registerHandler("startOtaUpgrade", new BridgeHandler() {
+            @Override
+            public void handler(String data, CallBackFunction function) {
+                String macAddress = null;
+                String fileUrl = null;
+                String secretKey = null;
+                try {
+                    JSONObject jsonObject = new JSONObject(data);
+                    macAddress = jsonObject.getString("macAddress");
+                    fileUrl = jsonObject.getString("fileUrl");
+                    secretKey = jsonObject.getString("secretKey");
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+
+                if (TextUtils.isEmpty(macAddress) || TextUtils.isEmpty(fileUrl) || TextUtils.isEmpty(secretKey)) {
+                    function.onCallBack(gson.toJson(Result.fail(PARAMETER_ERROR)));
+                    return;
+                }
+                String finalSecretKey = secretKey;
+                String finalMacAddress = macAddress;
+                DownloadUtil.getInstance().download(fileUrl, BaseWebViewActivity.this.getCacheDir().getPath(), new DownloadUtil.OnDownloadListener() {
+                    @Override
+                    public void onDownloadSuccess(String filePath) {
+                        otasdkUtils = new OTASDKUtils(getApplicationContext(), new UpdateFirewareCallBack() {
+                            @Override
+                            public void onError(int code) {
+                                bridgeWebView.callHandler("startOtaUpgradeErrorCallback", "error:" + code, new CallBackFunction() {
+                                    @Override
+                                    public void onCallBack(String data) {
+                                    }
+                                });
+                            }
+
+                            @Override
+                            public void onProcess(float process) {
+                                bridgeWebView.callHandler("startOtaUpgradeProcessCallback", process + "", new CallBackFunction() {
+                                    @Override
+                                    public void onCallBack(String data) {
+                                    }
+                                });
+                            }
+
+                            @Override
+                            public void onUpdateComplete() {
+                                bridgeWebView.callHandler("startOtaUpgradeCompleteCallback", "", new CallBackFunction() {
+                                    @Override
+                                    public void onCallBack(String data) {
+                                    }
+                                });
+                            }
+                        });
+
+                        otasdkUtils.setOtaKey(finalSecretKey);
+                        otasdkUtils.setOtaKeyCmd0x74(true);
+                        if (filePath.toLowerCase().endsWith(".hex") || filePath.endsWith(".hex16")) {
+                            otasdkUtils.updateFirware(finalMacAddress, filePath);
+                        } else if (filePath.toLowerCase().endsWith(".hexe16")) {
+                            otasdkUtils.updateSecurityFirware(finalMacAddress, filePath);
+                        } else {
+                            otasdkUtils.updateResource(finalMacAddress, filePath);
+                        }
+                    }
+
+                    @Override
+                    public void onDownloading(int progress) {
+
+                    }
+
+                    @Override
+                    public void onDownloadFailed() {
+                        bridgeWebView.callHandler("OtaUpgradeCallbackOnError", "The upgrade file download failed.", new CallBackFunction() {
+                            @Override
+                            public void onCallBack(String data) {
+
+                            }
+                        });
+                    }
+                });
+            }
+        });
+
+        bridgeWebView.registerHandler("stopOtaUpgrade", new BridgeHandler() {
+            @Override
+            public void handler(String data, CallBackFunction function) {
+                if (otasdkUtils != null) {
+                    otasdkUtils.cancleOTA();
+                }
+                function.onCallBack(gson.toJson(Result.ok()));
+            }
+        });
+
+
         bridgeWebView.registerHandler("readContacts", new BridgeHandler() {
             @Override
             public void handler(String data, CallBackFunction function) {
                 //JS传递给Android
-                XXPermissions.with(BaseWebViewActivity.this)
-                        .permission(Permission.READ_CONTACTS)
-                        .permission(Permission.WRITE_CONTACTS)
-                        .interceptor(new PermissionInterceptor())
-                        .request(new OnPermissionCallback() {
+                XXPermissions.with(BaseWebViewActivity.this).permission(Permission.READ_CONTACTS).permission(Permission.WRITE_CONTACTS).interceptor(new PermissionInterceptor()).request(new OnPermissionCallback() {
 
+                    @Override
+                    public void onGranted(@NonNull List<String> permissions, boolean allGranted) {
+                        if (!allGranted) {
+                            function.onCallBack(gson.toJson(Result.fail(PERMISSION_ERROR)));
+                            return;
+                        }
+                        function.onCallBack(gson.toJson(Result.ok("The invocation was successful. Please obtain the result in the callback method \"readContactsCallBack\".")));
+                        ThreadPool.getExecutor().execute(new Runnable() {
                             @Override
-                            public void onGranted(@NonNull List<String> permissions, boolean allGranted) {
-                                if (!allGranted) {
-                                    function.onCallBack(gson.toJson(Result.fail(PERMISSION_ERROR)));
-                                    return;
-                                }
-                                function.onCallBack(gson.toJson(Result.ok("The invocation was successful. Please obtain the result in the callback method \"readContactsCallBack\".")));
-                                ThreadPool.getExecutor().execute(new Runnable() {
+                            public void run() {
+                                List<PhoneDomain> phoneDomains = PhoneUtil.readContacts(BaseWebViewActivity.this);
+
+                                runOnUiThread(new Runnable() {
                                     @Override
                                     public void run() {
-                                        List<PhoneDomain> phoneDomains = PhoneUtil.readContacts(BaseWebViewActivity.this);
-
-                                        runOnUiThread(new Runnable() {
+                                        bridgeWebView.callHandler("readContactsCallBack", gson.toJson(phoneDomains), new CallBackFunction() {
                                             @Override
-                                            public void run() {
-                                                bridgeWebView.callHandler("readContactsCallBack", gson.toJson(phoneDomains), new CallBackFunction() {
-                                                    @Override
-                                                    public void onCallBack(String data) {
-                                                    }
-                                                });
+                                            public void onCallBack(String data) {
                                             }
                                         });
                                     }
                                 });
                             }
                         });
+                    }
+                });
             }
         });
 
@@ -224,21 +315,18 @@ public abstract class BaseWebViewActivity extends AppCompatActivity {
             @Override
             public void handler(String data, CallBackFunction function) {
                 //JS传递给Android
-                XXPermissions.with(BaseWebViewActivity.this)
-                        .permission(Permission.READ_PHONE_STATE)
-                        .interceptor(new PermissionInterceptor())
-                        .request(new OnPermissionCallback() {
+                XXPermissions.with(BaseWebViewActivity.this).permission(Permission.READ_PHONE_STATE).interceptor(new PermissionInterceptor()).request(new OnPermissionCallback() {
 
-                            @Override
-                            public void onGranted(@NonNull List<String> permissions, boolean allGranted) {
-                                if (!allGranted) {
-                                    function.onCallBack(gson.toJson(Result.fail(PERMISSION_ERROR)));
-                                    return;
-                                }
-                                Map<String, String> deviceInfo = DeviceUtil.getDeviceInfo(BaseWebViewActivity.this);
-                                function.onCallBack(gson.toJson(Result.ok(deviceInfo)));
-                            }
-                        });
+                    @Override
+                    public void onGranted(@NonNull List<String> permissions, boolean allGranted) {
+                        if (!allGranted) {
+                            function.onCallBack(gson.toJson(Result.fail(PERMISSION_ERROR)));
+                            return;
+                        }
+                        Map<String, String> deviceInfo = DeviceUtil.getDeviceInfo(BaseWebViewActivity.this);
+                        function.onCallBack(gson.toJson(Result.ok(deviceInfo)));
+                    }
+                });
             }
         });
 
@@ -552,15 +640,15 @@ public abstract class BaseWebViewActivity extends AppCompatActivity {
                                                             characteristicDto.setRealVal(characteristicDomain.getRealVal());
                                                             characteristicDto.setValType(characteristicDomain.getValType());
                                                             characteristicDto.setValues(characteristicDomain.getValues());
-                                                            if(servicesPropertiesDto.getCharacteristicList()==null){
+                                                            if (servicesPropertiesDto.getCharacteristicList() == null) {
                                                                 servicesPropertiesDto.setCharacteristicList(new ArrayList<>());
                                                             }
                                                             servicesPropertiesDto.getCharacteristicList().add(characteristicDto);
                                                         }
                                                     }
-                                                    Map<String,Object>obj=new HashMap<>();
-                                                    obj.put("macAddress",macAddress);
-                                                    obj.put("dataList",dataList);
+                                                    Map<String, Object> obj = new HashMap<>();
+                                                    obj.put("macAddress", macAddress);
+                                                    obj.put("dataList", dataList);
                                                     bridgeWebView.callHandler("bleInitDataOnCompleteCallBack", gson.toJson(obj), new CallBackFunction() {
                                                         @Override
                                                         public void onCallBack(String data) {
@@ -750,7 +838,7 @@ public abstract class BaseWebViewActivity extends AppCompatActivity {
                                     creator.setHmsScanTypes(HmsScan.ALL_SCAN_TYPE);
                                     creator.setShowGuide(true);
                                     creator.setPhotoMode(true);
-                                    HmsScanAnalyzerOptions hmsScanAnalyzerOptions =creator.create();
+                                    HmsScanAnalyzerOptions hmsScanAnalyzerOptions = creator.create();
                                     Intent intent = new Intent(BaseWebViewActivity.this, ScanKitActivity.class);
                                     if (intent != null) {
                                         intent.putExtra("ScanFormatValue", hmsScanAnalyzerOptions.mode);
@@ -792,79 +880,72 @@ public abstract class BaseWebViewActivity extends AppCompatActivity {
                     }
                 });
 
-        bridgeWebView.registerHandler("jump2MainActivity", new
-                BridgeHandler() {
+        bridgeWebView.registerHandler("jump2MainActivity", new BridgeHandler() {
+            @Override
+            public void handler(String data, CallBackFunction function) {
+                try {
+                    MainConfig mainConfig = gson.fromJson(data, MainConfig.class);
+                    function.onCallBack(gson.toJson(Result.ok(true)));
+                    Intent intent = new Intent(BaseWebViewActivity.this, MainActivity.class);
+                    intent.putExtra("data", gson.toJson(mainConfig));
+                    startActivity(intent);
+
+                    function.onCallBack(gson.toJson(Result.ok(true)));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    function.onCallBack(gson.toJson(Result.fail(RUNTIME_EXCEPTION.getCode(), e.getMessage(), false)));
+                }
+            }
+        });
+
+
+        bridgeWebView.registerHandler("callPhone", new BridgeHandler() {
+            @Override
+            public void handler(String data, CallBackFunction function) {
+
+                XXPermissions.with(BaseWebViewActivity.this).permission(Permission.CALL_PHONE).interceptor(new PermissionInterceptor()).request(new OnPermissionCallback() {
                     @Override
-                    public void handler(String data, CallBackFunction function) {
-                        try {
-                            MainConfig mainConfig = gson.fromJson(data, MainConfig.class);
-                            function.onCallBack(gson.toJson(Result.ok(true)));
-                            Intent intent = new Intent(BaseWebViewActivity.this, MainActivity.class);
-                            intent.putExtra("data", gson.toJson(mainConfig));
+                    public void onGranted(@NonNull List<String> permissions, boolean allGranted) {
+                        if (!allGranted) {
+                            function.onCallBack(gson.toJson(Result.fail(PERMISSION_ERROR, false)));
+                            return;
+                        }
+                        Intent intent = new Intent(Intent.ACTION_CALL);
+                        Uri uri = Uri.parse("tel:" + data);
+                        intent.setData(uri);
+                        startActivity(intent);
+                        function.onCallBack(gson.toJson(Result.ok(true)));
+                    }
+                });
+
+
+            }
+        });
+        bridgeWebView.registerHandler("sendSms", new BridgeHandler() {
+            @Override
+            public void handler(String data, CallBackFunction function) {
+                try {
+                    JSONObject jsonObject = new JSONObject(data);
+                    String phone = jsonObject.getString("phone");
+                    String content = jsonObject.getString("content");
+                    XXPermissions.with(BaseWebViewActivity.this).permission(Permission.SEND_SMS).interceptor(new PermissionInterceptor()).request(new OnPermissionCallback() {
+                        @Override
+                        public void onGranted(@NonNull List<String> permissions, boolean allGranted) {
+                            if (!allGranted) {
+                                function.onCallBack(gson.toJson(Result.fail(PERMISSION_ERROR, false)));
+                                return;
+                            }
+                            Uri smsToUri = Uri.parse("smsto:" + (TextUtils.isEmpty(phone) ? "" : phone));
+                            Intent intent = new Intent(Intent.ACTION_SENDTO, smsToUri);
+                            intent.putExtra("sms_body", TextUtils.isEmpty(content) ? "" : content);
                             startActivity(intent);
-
-                            function.onCallBack(gson.toJson(Result.ok(true)));
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                            function.onCallBack(gson.toJson(Result.fail(RUNTIME_EXCEPTION.getCode(), e.getMessage(), false)));
                         }
-                    }
-                });
-
-
-        bridgeWebView.registerHandler("callPhone", new
-                BridgeHandler() {
-                    @Override
-                    public void handler(String data, CallBackFunction function) {
-
-                        XXPermissions.with(BaseWebViewActivity.this)
-                                .permission(Permission.CALL_PHONE)
-                                .interceptor(new PermissionInterceptor()).request(new OnPermissionCallback() {
-                                    @Override
-                                    public void onGranted(@NonNull List<String> permissions, boolean allGranted) {
-                                        if (!allGranted) {
-                                            function.onCallBack(gson.toJson(Result.fail(PERMISSION_ERROR, false)));
-                                            return;
-                                        }
-                                        Intent intent = new Intent(Intent.ACTION_CALL);
-                                        Uri uri = Uri.parse("tel:" + data);
-                                        intent.setData(uri);
-                                        startActivity(intent);
-                                        function.onCallBack(gson.toJson(Result.ok(true)));
-                                    }
-                                });
-
-
-                    }
-                });
-        bridgeWebView.registerHandler("sendSms", new
-                BridgeHandler() {
-                    @Override
-                    public void handler(String data, CallBackFunction function) {
-                        try {
-                            JSONObject jsonObject = new JSONObject(data);
-                            String phone = jsonObject.getString("phone");
-                            String content = jsonObject.getString("content");
-                            XXPermissions.with(BaseWebViewActivity.this)
-                                    .permission(Permission.SEND_SMS)
-                                    .interceptor(new PermissionInterceptor()).request(new OnPermissionCallback() {
-                                        @Override
-                                        public void onGranted(@NonNull List<String> permissions, boolean allGranted) {
-                                            if (!allGranted) {
-                                                function.onCallBack(gson.toJson(Result.fail(PERMISSION_ERROR, false)));
-                                                return;
-                                            }
-                                            Uri smsToUri = Uri.parse("smsto:" + (TextUtils.isEmpty(phone) ? "" : phone));
-                                            Intent intent = new Intent(Intent.ACTION_SENDTO, smsToUri);
-                                            intent.putExtra("sms_body", TextUtils.isEmpty(content) ? "" : content);
-                                            startActivity(intent);
-                                        }
-                                    });
-                        } catch (Exception e) {
-                            function.onCallBack(gson.toJson(Result.fail(RUNTIME_EXCEPTION.getCode(), e.getMessage(), false)));
-                        }
-                    }
-                });
+                    });
+                } catch (Exception e) {
+                    function.onCallBack(gson.toJson(Result.fail(RUNTIME_EXCEPTION.getCode(), e.getMessage(), false)));
+                }
+            }
+        });
 
 
         bridgeWebView.registerHandler("choosePicture", new
@@ -1062,11 +1143,9 @@ public abstract class BaseWebViewActivity extends AppCompatActivity {
             public void handler(String data, CallBackFunction function) {
                 function.onCallBack(gson.toJson(Result.ok(true)));
 
-                BiometricPrompt biometricPrompt = new BiometricPrompt(BaseWebViewActivity.this,
-                        ContextCompat.getMainExecutor(BaseWebViewActivity.this), new BiometricPrompt.AuthenticationCallback() {
+                BiometricPrompt biometricPrompt = new BiometricPrompt(BaseWebViewActivity.this, ContextCompat.getMainExecutor(BaseWebViewActivity.this), new BiometricPrompt.AuthenticationCallback() {
                     @Override
-                    public void onAuthenticationError(int errorCode,
-                                                      @NonNull CharSequence errString) {
+                    public void onAuthenticationError(int errorCode, @NonNull CharSequence errString) {
                         super.onAuthenticationError(errorCode, errString);
                         Logger.e("Authentication error: " + errString);
                         bridgeWebView.callHandler("fingerprintVerificationCallBack", gson.toJson(Result.fail(FAIL.getCode(), "Authentication error: " + errString, false)), new CallBackFunction() {
@@ -1078,8 +1157,7 @@ public abstract class BaseWebViewActivity extends AppCompatActivity {
                     }
 
                     @Override
-                    public void onAuthenticationSucceeded(
-                            @NonNull BiometricPrompt.AuthenticationResult result) {
+                    public void onAuthenticationSucceeded(@NonNull BiometricPrompt.AuthenticationResult result) {
                         super.onAuthenticationSucceeded(result);
                         Logger.d("Authentication succeeded! ");
 
@@ -1102,11 +1180,7 @@ public abstract class BaseWebViewActivity extends AppCompatActivity {
                         });
                     }
                 });
-                BiometricPrompt.PromptInfo promptInfo = new BiometricPrompt.PromptInfo.Builder()
-                        .setTitle("Fingerprint Verification")
-                        .setSubtitle("Verifying your fingerprints")
-                        .setNegativeButtonText("Cancel")
-                        .build();
+                BiometricPrompt.PromptInfo promptInfo = new BiometricPrompt.PromptInfo.Builder().setTitle("Fingerprint Verification").setSubtitle("Verifying your fingerprints").setNegativeButtonText("Cancel").build();
                 biometricPrompt.authenticate(promptInfo);
             }
         });
@@ -1165,18 +1239,17 @@ public abstract class BaseWebViewActivity extends AppCompatActivity {
             @Override
             public void handler(String data, CallBackFunction function) {
                 try {
-                    XXPermissions.with(BaseWebViewActivity.this).permission(Permission.BLUETOOTH_ADVERTISE).permission(Permission.ACCESS_FINE_LOCATION).permission(Permission.ACCESS_COARSE_LOCATION)
-                            .interceptor(new PermissionInterceptor()).request(new OnPermissionCallback() {
-                                @Override
-                                public void onGranted(@NonNull List<String> permissions, boolean allGranted) {
-                                    if (!allGranted) {
-                                        function.onCallBack(gson.toJson(Result.fail(PERMISSION_ERROR, false)));
-                                        return;
-                                    }
-                                    bleService.startGps();
-                                    function.onCallBack(gson.toJson(Result.ok(true)));
-                                }
-                            });
+                    XXPermissions.with(BaseWebViewActivity.this).permission(Permission.BLUETOOTH_ADVERTISE).permission(Permission.ACCESS_FINE_LOCATION).permission(Permission.ACCESS_COARSE_LOCATION).interceptor(new PermissionInterceptor()).request(new OnPermissionCallback() {
+                        @Override
+                        public void onGranted(@NonNull List<String> permissions, boolean allGranted) {
+                            if (!allGranted) {
+                                function.onCallBack(gson.toJson(Result.fail(PERMISSION_ERROR, false)));
+                                return;
+                            }
+                            bleService.startGps();
+                            function.onCallBack(gson.toJson(Result.ok(true)));
+                        }
+                    });
                 } catch (Exception e) {
                     e.printStackTrace();
                     function.onCallBack(gson.toJson(Result.fail(PARAMETER_ERROR, false)));
@@ -1190,18 +1263,17 @@ public abstract class BaseWebViewActivity extends AppCompatActivity {
                 try {
 
 
-                    XXPermissions.with(BaseWebViewActivity.this).permission(Permission.ACCESS_FINE_LOCATION).permission(Permission.ACCESS_COARSE_LOCATION)
-                            .interceptor(new PermissionInterceptor()).request(new OnPermissionCallback() {
-                                @Override
-                                public void onGranted(@NonNull List<String> permissions, boolean allGranted) {
-                                    if (!allGranted) {
-                                        function.onCallBack(gson.toJson(Result.fail(PERMISSION_ERROR, false)));
-                                        return;
-                                    }
-                                    function.onCallBack(gson.toJson(Result.ok(true)));
-                                    bleService.stopGps();
-                                }
-                            });
+                    XXPermissions.with(BaseWebViewActivity.this).permission(Permission.ACCESS_FINE_LOCATION).permission(Permission.ACCESS_COARSE_LOCATION).interceptor(new PermissionInterceptor()).request(new OnPermissionCallback() {
+                        @Override
+                        public void onGranted(@NonNull List<String> permissions, boolean allGranted) {
+                            if (!allGranted) {
+                                function.onCallBack(gson.toJson(Result.fail(PERMISSION_ERROR, false)));
+                                return;
+                            }
+                            function.onCallBack(gson.toJson(Result.ok(true)));
+                            bleService.stopGps();
+                        }
+                    });
 
                 } catch (Exception e) {
                     e.printStackTrace();
