@@ -7,13 +7,15 @@ import com.hjq.toast.Toaster;
 import com.hjq.toast.style.WhiteToastStyle;
 import com.orhanobut.logger.AndroidLogAdapter;
 import com.orhanobut.logger.Logger;
-import com.oves.app.util.FileServer;
+import com.oves.app.util.file.FileServer;
 
+import java.io.File;
 import java.util.Locale;
 
 public class MyApplication extends Application {
 
     private static MyApplication INSTANCE = new MyApplication();
+    private FileServer fileServer;
 
     @Override
     public void onCreate() {
@@ -21,11 +23,11 @@ public class MyApplication extends Application {
         // 初始化吐司工具类
         Toaster.init(this, new WhiteToastStyle());
         Logger.addLogAdapter(new AndroidLogAdapter());
-
         Locale.setDefault(Locale.getDefault());
-
-        FileServer.startFileServer(8090, this);
+        fileServer = new FileServer();
+        fileServer.startFileServer(8090, this);
     }
+
     public static MyApplication getInstance() {
         return INSTANCE;
     }
@@ -34,7 +36,7 @@ public class MyApplication extends Application {
     public void onTerminate() {
         super.onTerminate();
         ThreadPool.shutDown();
-        FileServer.stopFileServer();
+        fileServer.stopFileServer();
     }
 
 
