@@ -59,6 +59,7 @@ import com.oves.app.thread.ThreadPool;
 import com.oves.app.util.BleDeviceUtil;
 import com.oves.app.util.DeviceUtil;
 import com.oves.app.util.DownloadUtil;
+import com.oves.app.util.FileUtil;
 import com.oves.app.util.ImageUtil;
 import com.oves.app.util.MqttClientUtil;
 import com.oves.app.util.PhoneUtil;
@@ -145,6 +146,15 @@ public abstract class BaseWebViewActivity extends AppCompatActivity {
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onMessageEvent(EventBusMsg message) {
+        bridgeWebView.registerHandler("delCacheFile", new BridgeHandler() {
+            @Override
+            public void handler(String data, CallBackFunction function) {
+                FileUtil.delCacheFile(BaseWebViewActivity.this);
+                function.onCallBack(gson.toJson(Result.ok()));
+            }
+        });
+
+
         if (message.getTagEnum() == EventBusEnum.BLE_FIND) {
             BleDeviceInfo info = (BleDeviceInfo) message.getT();
             bridgeWebView.callHandler("findBleDeviceCallBack", gson.toJson(info), new CallBackFunction() {

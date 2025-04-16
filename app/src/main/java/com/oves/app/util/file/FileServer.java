@@ -51,9 +51,7 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
-import okio.BufferedSink;
 import okio.BufferedSource;
-import okio.GzipSink;
 import okio.Okio;
 
 public class FileServer {
@@ -402,32 +400,6 @@ public class FileServer {
         }
     }
 
-    private void deleteChildFolder(File folder) {
-        if (folder.exists()) {
-            Queue<File> fileQueue = new LinkedList<>();
-            fileQueue.add(folder);
-            while (!fileQueue.isEmpty()) {
-                File current = fileQueue.poll();
-                if (current.isDirectory()) {
-                    File[] files = current.listFiles();
-                    if (files != null) {
-                        for (File file : files) {
-                            fileQueue.add(file);
-                        }
-                    }
-                } else {
-                    synchronized (current.getAbsolutePath().intern()) {
-                        if (!current.delete()) {
-                            Logger.d("delete file fail : " + current.getAbsolutePath());
-                        } else {
-                            Logger.d("delete file success : " + current.getAbsolutePath());
-                        }
-                    }
-                }
-            }
-        } else {
-            Logger.d("folder not exist!");
-        }
-    }
+
 
 }
