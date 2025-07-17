@@ -4,24 +4,98 @@ plugins {
     id 'com.huawei.agconnect'
 }
 
+def keyProperties = new Properties()
+def keyPropertiesFile = rootProject.file("key.properties")
+if (keyPropertiesFile.exists()) {
+    keyProperties.load(new FileInputStream(keyPropertiesFile))
+}
+
+def getVersionCode() {
+    try {
+        def versionCode = new ByteArrayOutputStream()
+        exec {
+            commandLine 'git', 'rev-list', '--count', 'HEAD'
+            standardOutput versionCode
+        }
+        return versionCode.toString().trim().toInteger()
+    } catch (ignored) {
+        return -1
+    }
+}
+
+def getVersionName() {
+    try {
+        def versionName = new ByteArrayOutputStream()
+        exec {
+            commandLine 'git', 'describe', '--tags', '--abbrev=0'
+            standardOutput versionName
+        }
+        return versionName.toString().trim()
+    } catch (ignored) {
+        return null
+    }
+}
+
 android {
-    namespace 'com.oves.app'
-    compileSdk 34
+    namespace rootProject.ext.appPackageName
+    compileSdk rootProject.ext.compileSdkVersion
 
     defaultConfig {
-//        applicationId "com.oves.app"
-        minSdk 26
-        targetSdk 34
-        versionCode 1
-        versionName "1.0"
+        applicationId rootProject.ext.appPackageName
+        minSdk rootProject.ext.minSdkVersion
+        targetSdk rootProject.ext.targetSdkVersion
+        versionCode getVersionCode()
+        versionName getVersionName()
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    signingConfigs {
+        release {
+            def tempFilePath = System.getProperty("user.home") + File.separator + ".android" + File.separator + "keystores" + File.separator
+            def allFiles = new File(tempFilePath).listFiles()
+            if (allFiles != null) {
+                for (File file : allFiles) {
+                    if (file.getName().endsWith(".jks")) {
+                        def keyStoreFile = file
+                        keyStoreFile.renameTo(new File("oves.jks"))
+                    }
+                }
+            }
+            storeFile file("oves.jks")
+            storePassword keyProperties.getProperty("storePassword")
+            keyAlias keyProperties.getProperty("keyAlias")
+            keyPassword keyProperties.getProperty("keyPassword")
+        }
+
+        debug {
+            def tempFilePath = System.getProperty("user.home") + File.separator + ".android" + File.separator + "keystores" + File.separator
+            def allFiles = new File(tempFilePath).listFiles()
+            if (allFiles != null) {
+                for (File file : allFiles) {
+                    if (file.getName().endsWith(".jks")) {
+                        def keyStoreFile = file
+                        keyStoreFile.renameTo(new File("oves.jks"))
+                    }
+                }
+            }
+            storeFile file("oves.jks")
+            storePassword keyProperties.getProperty("storePassword")
+            keyAlias keyProperties.getProperty("keyAlias")
+            keyPassword keyProperties.getProperty("keyPassword")
+        }
     }
 
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
+        }
+        debug {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.debug
         }
     }
     compileOptions {
@@ -104,8 +178,5 @@ dependencies {
     // To recognize Latin script
     implementation 'com.google.mlkit:text-recognition:16.0.1'
 //    implementation 'io.netty:netty-all:4.1.86.Final' // 传输相关
-
-
-
 
 }

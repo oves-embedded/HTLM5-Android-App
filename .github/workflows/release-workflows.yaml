@@ -80,19 +80,46 @@ jobs:
       - name: Build Release APK
         run: ./gradlew assembleRelease --stacktrace
 
+      - name: Check if keystore file exists in ~/.android/keystores directory else create one from base64 github secret
+        run: |
+          if [ ! -f ~/.android/keystores/oves.jks ]; then
+            mkdir -p ~/.android/keystores
+            echo ${{ secrets.RELEASE_SIGNING_KEY }} | base64 --decode > ~/.android/keystores/oves.jks
+          fi
+
+      - name: Create key properties file in root directory if not exists
+        run: |
+          if [ ! -f key.properties ]; then
+            touch key.properties
+            echo "keyAlias=${{ secrets.RELEASE_KEY_ALIAS }}" >> key.properties
+            echo "keyPassword=${{ secrets.RELEASE_KEY_PASSWORD }}" >> key.properties
+            echo "storeFile=~/.android/keystores/oves.jks" >> key.properties
+            echo "storePassword=${{ secrets.RELEASE_KEY_STORE_PASSWORD }}" >> key.properties
+          fi
+
+      - name: Sign APK
+        uses: r0adkll/sign-android-release@v1
+        id: sign_app
+        with:
+          releaseDir: app/build/outputs/apk/release
+          signingKeyBase64: ${{ secrets.RELEASE_SIGNING_KEY }}
+          alias: ${{ secrets.RELEASE_KEY_ALIAS }}
+          keyStorePassword: ${{ secrets.RELEASE_KEY_STORE_PASSWORD }}
+          keyPassword: ${{ secrets.RELEASE_KEY_PASSWORD }}
+
       - name: Upload Release APK
         uses: actions/upload-artifact@v4
         with:
-          name: oves app
-          path: app/build/outputs/apk/release/app-release-unsigned.apk
+          name: oves-ble
+          path: app/build/outputs/apk/release/app-release.apk
           retention-days: 14
 
       # Extract version info from build.gradle
       - name: Extract Version Info
         id: version
         run: |
-          VERSION_CODE=$(grep "versionCode" app/build.gradle | awk '{print $2}' | tr -d '\n')
-          VERSION_NAME=$(grep "versionName" app/build.gradle | awk '{print $2}' | tr -d '\"' | tr -d '\n')
+          VERSION_CODE=$(git rev-list --count HEAD)
+          VERSION_NAME=$(git describe --tags --abbrev=0)
           echo "VERSION_CODE=$VERSION_CODE" >> $GITHUB_OUTPUT
           echo "VERSION_NAME=$VERSION_NAME" >> $GITHUB_OUTPUT
 
@@ -102,6 +129,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+      upload-outputs: ${{ toJSON(steps.upload.outputs) }}
     steps:
       - name: Get latest tag pushed
         id: tag
@@ -114,18 +144,18 @@ jobs:
       - name: Download APK
         uses: actions/download-artifact@v4
         with:
-          name: oves app
+          name: oves
           path: apk/
 
       - name: Rename APK
         run: |
-          mv apk/app-release-unsigned.apk apk/oves_app.apk
+          mv apk/app-release-unsigned.apk apk/oves.apk
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{steps.tag.outputs.tag}}
           name: Release v${{steps.tag.outputs.tag}}
-          files: apk/oves_app.apk
+          files: apk/oves.apk
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.G_TOKEN }}
@@ -139,7 +169,7 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION }}
           aws-bucket: ${{ secrets.AWS_S3_BUCKET }}
           destination-dir: oves_app
-          file-path: apk/oves_app.apk
+          file-path: apk/oves.apk
           output-file-url: 'true'
           output-qr-url: 'true'
 
@@ -172,3 +202,33 @@ jobs:
 
       - name: Show URL
         run: echo '${{ steps.upload.outputs.file-url }}' # use this output
+
+  notify-teams:
+    name: 📢 Notify Teams
+    needs: [ create-release ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get release info
+        id: release
+        run: |
+          echo "RELEASE_URL=https://github.com/${{ github.repository }}/releases/tag/v${{ needs.create-release.outputs.tag }}" >> $GITHUB_ENV
+          echo "S3_URL=${{ needs.create-release.outputs.upload.outputs.file-url }}" >> $GITHUB_ENV
+
+      - name: Send notification to Microsoft Teams
+        uses: axelrindle/ms-teams-notification@v1.1.0
+        with:
+          webhook_uri: ${{ secrets.TEAMS_WEBHOOK_URL }}
+          status: ${{ job.status }}
+          title: "🚀 New App Release: v${{ needs.generate-release-apk.outputs.VERSION_NAME }} (${{ needs.generate-release-apk.outputs.VERSION_CODE }})"
+          summary: "A new version of the app has been released!"
+          text: |
+            **Release Details**
+            - **Version**: ${{ needs.generate-release-apk.outputs.VERSION_NAME }} (${{ needs.generate-release-apk.outputs.VERSION_CODE }})
+            - **GitHub Release**: [View Release](${{ env.RELEASE_URL }})
+            - **S3 Download**: [Download APK](${{ env.S3_URL }})
+            
+            _This is an automated message from GitHub Actions._
+          themeColor: '#0078D7'  # Default blue theme color for Teams
+          hide_footer: false
+          hide_card: false
+          ignore_failures: true  # Don't fail the workflow if notification fails
