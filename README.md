@@ -1,7 +1,7 @@
 # HTLM5 Android App
 
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
-[![Build Status](https://github.com/yourusername/HTLM5-Android-App/actions/workflows/release-workflows.yaml/badge.svg)](https://github.com/yourusername/HTLM5-Android-App/actions)
+[![License](https://img.shields.io/badge/MIT%20License-MIT-blue.svg)](LICENSE)
+[![Build Status](https://github.com/oves-embedded/HTLM5-Android-App/actions/workflows/release-workflows.yaml/badge.svg)](https://github.com/yourusername/HTLM5-Android-App/actions)
 
 A modern Android application built with HTML5 and native Android components, featuring Huawei Mobile Services integration.
 
@@ -27,7 +27,7 @@ A modern Android application built with HTML5 and native Android components, fea
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/HTLM5-Android-App.git
+   git clone https://github.com/oves-embedded/HTLM5-Android-App.git
    ```
 
 2. Open the project in Android Studio
