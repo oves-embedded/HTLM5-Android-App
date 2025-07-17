@@ -8,7 +8,7 @@ android {
     compileSdk rootProject.ext.compileSdkVersion
 
     defaultConfig {
-        applicationId rootProject.ext.sdkPackageName
+//        applicationId rootProject.ext.sdkPackageName
         minSdk rootProject.ext.minSdkVersion
         targetSdk rootProject.ext.targetSdkVersion
         versionCode 1
