@@ -4,13 +4,13 @@ plugins {
 
 
 android {
-    namespace 'com.example.ota66_sdk2'
-    compileSdk 33
+    namespace rootProject.ext.sdkPackageName
+    compileSdk rootProject.ext.compileSdkVersion
 
     defaultConfig {
-//        applicationId "com.example.ota66_sdk2"
-        minSdk 24
-        targetSdk 33
+        applicationId rootProject.ext.sdkPackageName
+        minSdk rootProject.ext.minSdkVersion
+        targetSdk rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
 
@@ -30,7 +30,6 @@ android {
 }
 
 dependencies {
-
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'com.google.android.material:material:1.8.0'
     testImplementation 'junit:junit:4.13.2'
