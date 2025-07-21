@@ -1,8 +1,9 @@
-name: OV APK CI/CD for Building and Releasing Artifacts to S3 and Packages
+name: OV APK CI/CD for Building and Releasing Artifacts to S3 and Packages (DEV)
 
 on:
   push:
-    tags: [ "v*" ] # Trigger only on version tags
+    branches:
+      - dev
 
 jobs:
   build:
@@ -149,13 +150,13 @@ jobs:
 
       - name: Rename APK
         run: |
-          mv apk/app-release-unsigned.apk apk/oves.apk
+          mv apk/app-release-unsigned.apk apk/oves-dev.apk
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{steps.tag.outputs.tag}}
           name: Release v${{steps.tag.outputs.tag}}
-          files: apk/oves.apk
+          files: apk/oves-dev.apk
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.G_TOKEN }}
@@ -169,7 +170,7 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION }}
           aws-bucket: ${{ secrets.AWS_S3_BUCKET }}
           destination-dir: oves_app
-          file-path: apk/oves.apk
+          file-path: apk/oves-dev.apk
           output-file-url: 'true'
           output-qr-url: 'true'
 
