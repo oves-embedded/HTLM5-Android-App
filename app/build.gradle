@@ -52,34 +52,15 @@ android {
 
     signingConfigs {
         release {
-            def tempFilePath = System.getProperty("user.home") + File.separator + ".android" + File.separator + "keystores" + File.separator
-            def allFiles = new File(tempFilePath).listFiles()
-            if (allFiles != null) {
-                for (File file : allFiles) {
-                    if (file.getName().endsWith(".jks")) {
-                        def keyStoreFile = file
-                        keyStoreFile.renameTo(new File("oves.jks"))
-                    }
-                }
-            }
-            storeFile file("oves.jks")
+            // Get keystore from one directory above the app
+            storeFile file(rootProject.file("oves.jks"))
             storePassword keyProperties.getProperty("storePassword")
             keyAlias keyProperties.getProperty("keyAlias")
             keyPassword keyProperties.getProperty("keyPassword")
         }
 
         debug {
-            def tempFilePath = System.getProperty("user.home") + File.separator + ".android" + File.separator + "keystores" + File.separator
-            def allFiles = new File(tempFilePath).listFiles()
-            if (allFiles != null) {
-                for (File file : allFiles) {
-                    if (file.getName().endsWith(".jks")) {
-                        def keyStoreFile = file
-                        keyStoreFile.renameTo(new File("oves.jks"))
-                    }
-                }
-            }
-            storeFile file("oves.jks")
+            storeFile file(rootProject.file("oves.jks"))
             storePassword keyProperties.getProperty("storePassword")
             keyAlias keyProperties.getProperty("keyAlias")
             keyPassword keyProperties.getProperty("keyPassword")

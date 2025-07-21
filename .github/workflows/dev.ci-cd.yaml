@@ -21,6 +21,23 @@ jobs:
           distribution: "corretto"
           java-version: "11"
           cache: 'gradle' # Enable Gradle caching
+      - name: Create keystore file
+        run: |
+          if [ ! -f oves.jks ]; then
+            touch oves.jks
+            echo ${{ secrets.RELEASE_SIGNING_KEY }} | base64 --decode > oves.jks
+          else
+            echo ${{ secrets.RELEASE_SIGNING_KEY }} | base64 --decode > oves.jks
+          fi
+      - name: Create key properties file in root directory if not exists
+        run: |
+          if [ ! -f key.properties ]; then
+            touch key.properties
+            echo "storeFile=oves.jks" >> key.properties
+            echo "storePassword=${{ secrets.RELEASE_KEY_PASSWORD }}" >> key.properties
+            echo "keyAlias=${{ secrets.RELEASE_KEY_ALIAS }}" >> key.properties
+            echo "keyPassword=${{ secrets.RELEASE_KEY_PASSWORD }}" >> key.properties
+          fi
 
       - name: Make Gradle Executable
         run: chmod +x ./gradlew
@@ -54,7 +71,7 @@ jobs:
         with:
           name: lint-report
           path: app/build/reports/lint-results-debug.html
-          retention-days: 14
+          retention-days: 5
 
   generate-release-apk:
     name: ⚙ Generate Release APK
@@ -81,11 +98,10 @@ jobs:
       - name: Build Release APK
         run: ./gradlew assembleRelease --stacktrace
 
-      - name: Check if keystore file exists in ~/.android/keystores directory else create one from base64 github secret
+      - name: Check if keystore file exists in root directory else create one from base64 github secret
         run: |
-          if [ ! -f ~/.android/keystores/oves.jks ]; then
-            mkdir -p ~/.android/keystores
-            echo ${{ secrets.RELEASE_SIGNING_KEY }} | base64 --decode > ~/.android/keystores/oves.jks
+          if [ ! -f oves.jks ]; then
+            echo ${{ secrets.RELEASE_SIGNING_KEY }} | base64 --decode > oves.jks
           fi
 
       - name: Create key properties file in root directory if not exists
@@ -94,7 +110,7 @@ jobs:
             touch key.properties
             echo "keyAlias=${{ secrets.RELEASE_KEY_ALIAS }}" >> key.properties
             echo "keyPassword=${{ secrets.RELEASE_KEY_PASSWORD }}" >> key.properties
-            echo "storeFile=~/.android/keystores/oves.jks" >> key.properties
+            echo "storeFile=./oves.jks" >> key.properties
             echo "storePassword=${{ secrets.RELEASE_KEY_STORE_PASSWORD }}" >> key.properties
           fi
 
@@ -159,7 +175,13 @@ jobs:
           files: apk/oves-dev.apk
           generate_release_notes: true
         env:
-          GITHUB_TOKEN: ${{ secrets.G_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Delete keystore file and key properties file
+        run: |
+          rm -rf ./oves.jks
+          rm -rf ./key.properties
+
 
       - name: Upload to s3
         uses: hkusu/s3-upload-action@v2

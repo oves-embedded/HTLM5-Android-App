@@ -31,16 +31,20 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.ACCELEROMETER" />
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission
+        android:name="android.permission.READ_MEDIA_IMAGES"
+        android:minSdkVersion="34"
+        android:required="false" />
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
-    <uses-permission android:name="android.permission.MANAGE_DOCUMENTS"
+    <uses-permission
+        android:name="android.permission.MANAGE_DOCUMENTS"
         tools:ignore="ProtectedPermissions" />
     <!-- 这个权限用于进行网络定位 -->
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" /> <!-- 获取网络状态，根据网络状态切换进行数据请求网络转换 -->
     <!--    读写设计存储权限-->
     <!-- Android11新增 -->
-    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
+    <!--    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />-->
     <!--    必须加这个权限，不然会导致读条结束后安装包不启动-->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission android:name="android.permission.INTERNET" /> <!-- 位置权限 -->
@@ -64,18 +68,18 @@
         android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
         tools:ignore="ScopedStorage" />
     <application
+        android:name="com.oves.app.application.MyApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
+        android:requestLegacyExternalStorage="true"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.MyApplication"
         android:usesCleartextTraffic="true"
-        android:name="com.oves.app.application.MyApplication"
-        android:requestLegacyExternalStorage="true"
-        tools:targetApi="31" >
+        tools:targetApi="31">
         <activity
             android:name=".activity.FirstActivity"
             android:exported="true">
@@ -84,17 +88,34 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name="com.oves.app.activity.WebViewActivity" android:exported="true"/>
-        <activity android:name="com.oves.app.activity.LaunchActivity" android:exported="true"/>
-        <activity android:name="com.oves.app.MainActivity" android:exported="true" />
-        <service android:name="com.oves.app.service.BleService" android:exported="true" />
-        <activity android:name="com.huawei.hms.hmsscankit.ScanKitActivity" android:exported="true"/>
-        <activity android:name="com.oves.app.activity.OcrActivity" android:exported="true"/>
+        <activity
+            android:name="com.oves.app.activity.WebViewActivity"
+            android:exported="true" />
+        <activity
+            android:name="com.oves.app.activity.LaunchActivity"
+            android:exported="true" />
+        <activity
+            android:name="com.oves.app.MainActivity"
+            android:exported="true" />
+
+        <service
+            android:name="com.oves.app.service.BleService"
+            android:exported="true" />
+
+        <activity
+            android:name="com.huawei.hms.hmsscankit.ScanKitActivity"
+            android:exported="true" />
+        <activity
+            android:name="com.oves.app.activity.OcrActivity"
+            android:exported="true" />
         <activity
             android:name="com.theartofdev.edmodo.cropper.CropImageActivity"
-            android:theme="@style/Base.Theme.AppCompat" android:exported="true"/> <!-- optional (needed if default theme has no action bar) -->
+            android:exported="true"
+            android:theme="@style/Base.Theme.AppCompat" /> <!-- optional (needed if default theme has no action bar) -->
 
-        <service android:name="com.oves.app.service.GpsService" android:exported="true"/>
+        <service
+            android:name="com.oves.app.service.GpsService"
+            android:exported="true" />
     </application>
 
 

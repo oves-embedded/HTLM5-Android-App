@@ -1,5 +1,6 @@
 package com.example.ota66_sdk2.ble;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
@@ -9,6 +10,8 @@ import android.bluetooth.BluetoothProfile;
 import android.os.Build;
 import android.util.Log;
 
+
+import androidx.annotation.RequiresPermission;
 
 import com.example.ota66_sdk2.OTAUtils;
 import com.example.ota66_sdk2.beans.BleConstant;
@@ -95,6 +98,7 @@ public class BleCallBack extends BluetoothGattCallback {
         isCancle = false;
     }
 
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     @Override
     public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
         if (newState == BluetoothProfile.STATE_CONNECTED) {

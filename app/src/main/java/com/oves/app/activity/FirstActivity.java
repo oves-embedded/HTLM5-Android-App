@@ -1,7 +1,10 @@
 package com.oves.app.activity;
 
 import android.content.Intent;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.Button;
@@ -11,7 +14,7 @@ import android.widget.Toast;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.oves.app.BuildConfig;
+//import com.oves.app.BuildConfig;
 import com.oves.app.util.ImageUtil;
 import com.oves.app.util.SharedPreferencesUtils;
 import com.theartofdev.edmodo.cropper.CropImage;
@@ -35,9 +38,12 @@ public class FirstActivity extends AppCompatActivity {
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
+        try {
+        PackageInfo packageInfo = getPackageManager().getPackageInfo(getPackageName(), 0);
+        int versionCode = packageInfo.versionCode;
+//        SharedPreferencesUtils.setParam(FirstActivity.this, "versionCode", versionCode);
         appUpdateManager = new AppUpdateManager(this);
-        appUpdateManager.checkForUpdates(BuildConfig.VERSION_CODE);
+        appUpdateManager.checkForUpdates(versionCode);
 
         // Get cached URL or use default
         String url = (String) SharedPreferencesUtils.getParam(FirstActivity.this, TAG, DEFAULT_URL);
@@ -49,6 +55,9 @@ public class FirstActivity extends AppCompatActivity {
 
         // Close FirstActivity since we don't need it anymore
         finish();
+        } catch (PackageManager.NameNotFoundException nameNotFoundException) {
+            Log.e(TAG, "onCreate: PackageName not found.", nameNotFoundException);
+        }
     }
 
     @Override
